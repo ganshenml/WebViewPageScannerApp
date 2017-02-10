@@ -1,10 +1,10 @@
 package com.example.administrator.webviewpagescannerapp;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.Handler;
-import android.os.Message;
+import android.graphics.drawable.BitmapDrawable;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
@@ -12,24 +12,28 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bm.library.PhotoView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 public class PhotoBrowserActivity extends Activity implements View.OnClickListener {
     private ImageView crossIv;
     private ViewPager mPager;
+    private ImageView centerIv;
     private TextView photoOrderTv;
     private TextView saveTv;
     private String curImageUrl = "";
     private String[] imageUrls = new String[]{};
+
+    private int curPosition = -1;
+    private int[] initialedPostions = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +42,13 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
         setContentView(R.layout.activity_photo_browser);
         imageUrls = getIntent().getStringArrayExtra("imageUrls");
         curImageUrl = getIntent().getStringExtra("curImageUrl");
+        initialedPostions = new int[imageUrls.length];
+        initInitialedPositions();
 
         photoOrderTv = (TextView) findViewById(R.id.photoOrderTv);
         saveTv = (TextView) findViewById(R.id.saveTv);
         saveTv.setOnClickListener(this);
+        centerIv = (ImageView) findViewById(R.id.centerIv);
         crossIv = (ImageView) findViewById(R.id.crossIv);
         crossIv.setOnClickListener(this);
 
@@ -62,32 +69,29 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
             @Override
             public Object instantiateItem(ViewGroup container, final int position) {
                 if (imageUrls[position] != null && !"".equals(imageUrls[position])) {
-                    Log.e("instantiateItem", "进入了");
-                    photoOrderTv.setText((position + 1) + "/" + imageUrls.length);
+                    Log.e("instantiateItem 进入", "" + position);
                     final PhotoView view = new PhotoView(PhotoBrowserActivity.this);
                     view.enable();
                     view.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    final Handler handle = new Handler() {
-                        public void handleMessage(Message msg) {
-                            switch (msg.what) {
-                                case 0:
-                                    Bitmap bmp = (Bitmap) msg.obj;
-                                    view.setImageBitmap(bmp);
-                                    break;
-                            }
-                        }
-                    };
-
-                    new Thread(new Runnable() {
+                    Glide.with(PhotoBrowserActivity.this).load(imageUrls[position]).fitCenter().crossFade().listener(new RequestListener<String, GlideDrawable>() {
                         @Override
-                        public void run() {
-                            Bitmap bmp = returnBitMap(imageUrls[position]);
-                            Message msg = new Message();
-                            msg.what = 0;
-                            msg.obj = bmp;
-                            handle.sendMessage(msg);
+                        public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
+                            if (position == curPosition) {
+                                hideLoadingAnimation();
+                            }
+                            showErrorLoading();
+                            return false;
                         }
-                    }).start();
+
+                        @Override
+                        public boolean onResourceReady(GlideDrawable resource, String model, Target<GlideDrawable> target, boolean isFromMemoryCache, boolean isFirstResource) {
+                            occupyOnePosition(position);
+                            if (position == curPosition) {
+                                hideLoadingAnimation();
+                            }
+                            return false;
+                        }
+                    }).into(view);
 
                     container.addView(view);
                     return view;
@@ -95,14 +99,24 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
                 return null;
             }
 
+
             @Override
             public void destroyItem(ViewGroup container, int position, Object object) {
+                Log.e("destroyItem 进入", "" + position);
+                releaseOnePosition(position);
                 container.removeView((View) object);
             }
 
         });
-        mPager.setCurrentItem(returnClickedPosition() == -1 ? 0 : returnClickedPosition(), true);
-        Log.e("点击的图片所处的position是", "" + returnClickedPosition());
+
+        curPosition = returnClickedPosition() == -1 ? 0 : returnClickedPosition();
+        mPager.setCurrentItem(curPosition);
+        if (initialedPostions[curPosition] != curPosition) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
+            showLoadingAnimation();
+        }
+
+        Log.e("点击的position", "" + curPosition);
+        photoOrderTv.setText((curPosition + 1) + "/" + imageUrls.length);
         mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -111,6 +125,13 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
             @Override
             public void onPageSelected(int position) {
+                Log.e("onPageSelected", "" + position);
+                if (initialedPostions[position] != position) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
+                    showLoadingAnimation();
+                } else {
+                    hideLoadingAnimation();
+                }
+                curPosition = position;
                 photoOrderTv.setText((position + 1) + "/" + imageUrls.length);
             }
 
@@ -119,28 +140,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
             }
         });
-    }
-
-    private Bitmap returnBitMap(final String url) {
-        Bitmap bmp = null;
-        try {
-            URL myurl = new URL(url);
-            // 获得连接
-            HttpURLConnection conn = (HttpURLConnection) myurl.openConnection();
-            conn.setConnectTimeout(6000);//设置超时
-            conn.setDoInput(true);
-            conn.setUseCaches(false);//不缓存
-            conn.connect();
-            InputStream is = conn.getInputStream();//获得图片的数据流
-            bmp = BitmapFactory.decodeStream(is);
-            is.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        if (bmp == null) {
-            Log.e("bitmap", "获取图片失败");
-        }
-        return bmp;
     }
 
     private int returnClickedPosition() {
@@ -167,5 +166,62 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
             default:
                 break;
         }
+    }
+
+    private void showLoadingAnimation() {
+        Log.e("showLoadingAnimation", "调用了");
+        centerIv.setVisibility(View.VISIBLE);
+        centerIv.setImageResource(R.drawable.loading);
+        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(centerIv, "rotation", 0f, 360f);
+        objectAnimator.setDuration(2000);
+        objectAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        objectAnimator.start();
+    }
+
+    private void hideLoadingAnimation() {
+        Log.e("hideLoadingAnimation", "调用了");
+        releaseResource();
+        centerIv.setVisibility(View.GONE);
+    }
+
+    private void showErrorLoading() {
+        Log.e("showErrorLoading", "调用了");
+        centerIv.setVisibility(View.VISIBLE);
+        releaseResource();
+        centerIv.setImageResource(R.drawable.load_error);
+    }
+
+    private void releaseResource() {
+        if (centerIv.getAnimation() != null) {
+            centerIv.getAnimation().cancel();
+        }
+    }
+
+    private void occupyOnePosition(int position) {
+        initialedPostions[position] = position;
+    }
+
+    private void releaseOnePosition(int position) {
+        initialedPostions[position] = -1;
+    }
+
+    private void initInitialedPositions() {
+        for (int i = 0; i < initialedPostions.length; i++) {
+            initialedPostions[i] = -1;
+        }
+    }
+
+    private void savePhotoToLocal() {
+        PhotoView photoViewTemp = (PhotoView) mPager.findViewWithTag(mPager.getCurrentItem());
+        if (photoViewTemp != null) {
+            Log.e("获取当前photoView", "不为空");
+            Bitmap bitmap = ((BitmapDrawable) photoViewTemp.getDrawable()).getBitmap();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        releaseResource();
+        super.onDestroy();
     }
 }

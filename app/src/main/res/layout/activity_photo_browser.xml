@@ -37,5 +37,12 @@
         android:text="保存"
         android:textColor="@color/white" />
 
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/loading"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:id="@+id/centerIv"/>
 
 </FrameLayout>
