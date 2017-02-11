@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
@@ -15,9 +14,9 @@ import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.bm.library.PhotoView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.GlideBitmapDrawable;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
@@ -33,7 +32,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     private String[] imageUrls = new String[]{};
 
     private int curPosition = -1;
-    private int[] initialedPostions = null;
+    private int[] initialedPositions = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +41,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
         setContentView(R.layout.activity_photo_browser);
         imageUrls = getIntent().getStringArrayExtra("imageUrls");
         curImageUrl = getIntent().getStringExtra("curImageUrl");
-        initialedPostions = new int[imageUrls.length];
+        initialedPositions = new int[imageUrls.length];
         initInitialedPositions();
 
         photoOrderTv = (TextView) findViewById(R.id.photoOrderTv);
@@ -73,7 +72,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
                     final PhotoView view = new PhotoView(PhotoBrowserActivity.this);
                     view.enable();
                     view.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    Glide.with(PhotoBrowserActivity.this).load(imageUrls[position]).fitCenter().crossFade().listener(new RequestListener<String, GlideDrawable>() {
+                    Glide.with(PhotoBrowserActivity.this).load(imageUrls[position]).override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).fitCenter().crossFade().listener(new RequestListener<String, GlideDrawable>() {
                         @Override
                         public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
                             if (position == curPosition) {
@@ -111,7 +110,8 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
         curPosition = returnClickedPosition() == -1 ? 0 : returnClickedPosition();
         mPager.setCurrentItem(curPosition);
-        if (initialedPostions[curPosition] != curPosition) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
+        mPager.setTag(curPosition);
+        if (initialedPositions[curPosition] != curPosition) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
             showLoadingAnimation();
         }
 
@@ -126,13 +126,14 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
             @Override
             public void onPageSelected(int position) {
                 Log.e("onPageSelected", "" + position);
-                if (initialedPostions[position] != position) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
+                if (initialedPositions[position] != position) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
                     showLoadingAnimation();
                 } else {
                     hideLoadingAnimation();
                 }
                 curPosition = position;
                 photoOrderTv.setText((position + 1) + "/" + imageUrls.length);
+                mPager.setTag(position);//为当前view设置tag
             }
 
             @Override
@@ -161,7 +162,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
                 finish();
                 break;
             case R.id.saveTv:
-                Toast.makeText(PhotoBrowserActivity.this, "点击了保存", Toast.LENGTH_SHORT).show();
+                savePhotoToLocal();
                 break;
             default:
                 break;
@@ -198,24 +199,58 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void occupyOnePosition(int position) {
-        initialedPostions[position] = position;
+        initialedPositions[position] = position;
     }
 
     private void releaseOnePosition(int position) {
-        initialedPostions[position] = -1;
+        initialedPositions[position] = -1;
     }
 
     private void initInitialedPositions() {
-        for (int i = 0; i < initialedPostions.length; i++) {
-            initialedPostions[i] = -1;
+        for (int i = 0; i < initialedPositions.length; i++) {
+            initialedPositions[i] = -1;
         }
     }
 
     private void savePhotoToLocal() {
-        PhotoView photoViewTemp = (PhotoView) mPager.findViewWithTag(mPager.getCurrentItem());
+        Log.e("savePhotoToLocal", "点击了" + mPager.getCurrentItem());
+        ViewGroup containerTemp = (ViewGroup) mPager.findViewWithTag(mPager.getCurrentItem());
+        if (containerTemp == null) {
+            return;
+        }
+        PhotoView photoViewTemp = (PhotoView) containerTemp.getChildAt(0);
         if (photoViewTemp != null) {
             Log.e("获取当前photoView", "不为空");
-            Bitmap bitmap = ((BitmapDrawable) photoViewTemp.getDrawable()).getBitmap();
+            GlideBitmapDrawable glideBitmapDrawable = (GlideBitmapDrawable) photoViewTemp.getDrawable();
+            if (glideBitmapDrawable == null) {
+                return;
+            }
+            Bitmap bitmap = glideBitmapDrawable.getBitmap();
+            if (bitmap == null) {
+                return;
+            }
+            Log.e("bitmap", bitmap == null ? "为空" : "不为空");
+            FileUtils.savePhoto(this, bitmap, new FileUtils.SaveResultCallback() {
+                @Override
+                public void onSavedSuccess() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(PhotoBrowserActivity.this, "保存成功", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onSavedFailed() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(PhotoBrowserActivity.this, "保存失败", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
         }
     }
 

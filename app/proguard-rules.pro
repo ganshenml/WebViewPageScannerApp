@@ -23,5 +23,3 @@
 
 # for DexGuard only
 -keepresourcexmlelements manifest/application/meta-data@value=GlideModule
-
--keepnames class * com.example.administrator.webviewpagescannerapp.MyGlideModule
