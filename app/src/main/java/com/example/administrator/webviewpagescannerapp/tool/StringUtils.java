@@ -1,4 +1,4 @@
-package com.example.administrator.webviewpagescannerapp;
+package com.example.administrator.webviewpagescannerapp.tool;
 
 import android.util.Log;
 
@@ -24,7 +24,6 @@ public class StringUtils {
             src = (quote == null || quote.trim().length() == 0) ? m.group(2).split("//s+")[0] : m.group(2);
             imageSrcList.add(src);
         }
-        Log.e("imageUrls",imageSrcList.get(0).toString());
         return imageSrcList.toArray(new String[imageSrcList.size()]);
     }
 

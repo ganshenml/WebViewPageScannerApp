@@ -1,4 +1,4 @@
-package com.example.administrator.webviewpagescannerapp;
+package com.example.administrator.webviewpagescannerapp.activity;
 
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -20,6 +19,8 @@ import com.bumptech.glide.load.resource.bitmap.GlideBitmapDrawable;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.example.administrator.webviewpagescannerapp.R;
+import com.example.administrator.webviewpagescannerapp.tool.FileUtils;
 
 
 public class PhotoBrowserActivity extends Activity implements View.OnClickListener {
@@ -68,7 +69,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
             @Override
             public Object instantiateItem(ViewGroup container, final int position) {
                 if (imageUrls[position] != null && !"".equals(imageUrls[position])) {
-                    Log.e("instantiateItem 进入", "" + position);
                     final PhotoView view = new PhotoView(PhotoBrowserActivity.this);
                     view.enable();
                     view.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -101,7 +101,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
             @Override
             public void destroyItem(ViewGroup container, int position, Object object) {
-                Log.e("destroyItem 进入", "" + position);
                 releaseOnePosition(position);
                 container.removeView((View) object);
             }
@@ -114,9 +113,8 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
         if (initialedPositions[curPosition] != curPosition) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
             showLoadingAnimation();
         }
-
-        Log.e("点击的position", "" + curPosition);
         photoOrderTv.setText((curPosition + 1) + "/" + imageUrls.length);
+
         mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -125,7 +123,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
             @Override
             public void onPageSelected(int position) {
-                Log.e("onPageSelected", "" + position);
                 if (initialedPositions[position] != position) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
                     showLoadingAnimation();
                 } else {
@@ -170,7 +167,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void showLoadingAnimation() {
-        Log.e("showLoadingAnimation", "调用了");
         centerIv.setVisibility(View.VISIBLE);
         centerIv.setImageResource(R.drawable.loading);
         ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(centerIv, "rotation", 0f, 360f);
@@ -180,13 +176,11 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void hideLoadingAnimation() {
-        Log.e("hideLoadingAnimation", "调用了");
         releaseResource();
         centerIv.setVisibility(View.GONE);
     }
 
     private void showErrorLoading() {
-        Log.e("showErrorLoading", "调用了");
         centerIv.setVisibility(View.VISIBLE);
         releaseResource();
         centerIv.setImageResource(R.drawable.load_error);
@@ -213,14 +207,12 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void savePhotoToLocal() {
-        Log.e("savePhotoToLocal", "点击了" + mPager.getCurrentItem());
         ViewGroup containerTemp = (ViewGroup) mPager.findViewWithTag(mPager.getCurrentItem());
         if (containerTemp == null) {
             return;
         }
         PhotoView photoViewTemp = (PhotoView) containerTemp.getChildAt(0);
         if (photoViewTemp != null) {
-            Log.e("获取当前photoView", "不为空");
             GlideBitmapDrawable glideBitmapDrawable = (GlideBitmapDrawable) photoViewTemp.getDrawable();
             if (glideBitmapDrawable == null) {
                 return;
@@ -229,7 +221,6 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
             if (bitmap == null) {
                 return;
             }
-            Log.e("bitmap", bitmap == null ? "为空" : "不为空");
             FileUtils.savePhoto(this, bitmap, new FileUtils.SaveResultCallback() {
                 @Override
                 public void onSavedSuccess() {

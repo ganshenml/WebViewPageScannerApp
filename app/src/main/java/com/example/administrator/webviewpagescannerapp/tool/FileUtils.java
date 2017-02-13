@@ -1,4 +1,4 @@
-package com.example.administrator.webviewpagescannerapp;
+package com.example.administrator.webviewpagescannerapp.tool;
 
 import android.content.Context;
 import android.content.Intent;
@@ -24,7 +24,6 @@ public class FileUtils {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.e("savePhoto","进入run方法");
                 File appDir = new File(Environment.getExternalStorageDirectory(), "out_photo");
                 if (!appDir.exists()) {
                     appDir.mkdir();
@@ -54,7 +53,7 @@ public class FileUtils {
         }).start();
     }
 
-    interface SaveResultCallback{
+   public interface SaveResultCallback{
         void onSavedSuccess();
         void onSavedFailed();
     }
