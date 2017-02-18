@@ -113,7 +113,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
         if (initialedPositions[curPosition] != curPosition) {//如果当前页面未加载完毕，则显示加载动画，反之相反；
             showLoadingAnimation();
         }
-        photoOrderTv.setText((curPosition + 1) + "/" + imageUrls.length);
+        photoOrderTv.setText((curPosition + 1) + "/" + imageUrls.length);//设置页面的编号
 
         mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
@@ -129,7 +129,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
                     hideLoadingAnimation();
                 }
                 curPosition = position;
-                photoOrderTv.setText((position + 1) + "/" + imageUrls.length);
+                photoOrderTv.setText((position + 1) + "/" + imageUrls.length);//设置页面的编号
                 mPager.setTag(position);//为当前view设置tag
             }
 

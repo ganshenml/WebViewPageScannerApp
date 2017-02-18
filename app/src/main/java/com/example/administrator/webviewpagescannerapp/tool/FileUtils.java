@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,17 +21,21 @@ import java.util.Date;
  */
 
 public class FileUtils {
-    public static void savePhoto(final Context context, final Bitmap bmp , final SaveResultCallback saveResultCallback) {
+    public static void savePhoto(final Context context, final Bitmap bmp, final SaveResultCallback saveResultCallback) {
+        final File sdDir = getSDPath();
+        if (sdDir == null) {
+            Toast.makeText(context,"设备自带的存储不可用",Toast.LENGTH_LONG).show();
+            return;
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File appDir = new File(Environment.getExternalStorageDirectory(), "out_photo");
+                File appDir = new File(sdDir, "out_photo");
                 if (!appDir.exists()) {
                     appDir.mkdir();
                 }
                 SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置以当前时间格式为图片名称
                 String fileName = df.format(new Date()) + ".png";
-                Log.e("file path",fileName);
                 File file = new File(appDir, fileName);
                 try {
                     FileOutputStream fos = new FileOutputStream(file);
@@ -53,8 +58,19 @@ public class FileUtils {
         }).start();
     }
 
-   public interface SaveResultCallback{
+
+    public static File getSDPath() {
+        File sdDir = null;
+        boolean sdCardExist = Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED); //判断sd卡是否存在
+        if (sdCardExist) {
+            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
+        }
+        return sdDir;
+    }
+
+    public interface SaveResultCallback {
         void onSavedSuccess();
+
         void onSavedFailed();
     }
 }

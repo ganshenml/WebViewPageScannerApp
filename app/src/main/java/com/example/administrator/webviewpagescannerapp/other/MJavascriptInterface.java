@@ -26,5 +26,8 @@ public class MJavascriptInterface {
         intent.putExtra("curImageUrl", img);
         intent.setClass(context, PhotoBrowserActivity.class);
         context.startActivity(intent);
+        for (int i = 0; i < imageUrls.length; i++) {
+            Log.e("图片地址"+i,imageUrls[i].toString());
+        }
     }
 }

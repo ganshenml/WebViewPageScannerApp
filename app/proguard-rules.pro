@@ -21,5 +21,9 @@
   public *;
 }
 
-# for DexGuard only
--keepresourcexmlelements manifest/application/meta-data@value=GlideModule
+-keepclassmembers class com.example.administrator.webviewpagescannerapp.other.MJavascriptInterface{
+  public *;
+}
+
+-keepattributes *Annotation*
+-keepattributes *JavascriptInterface*
