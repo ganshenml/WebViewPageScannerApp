@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.bm.library.PhotoView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.GlideBitmapDrawable;
@@ -34,6 +36,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
 
     private int curPosition = -1;
     private int[] initialedPositions = null;
+    private ObjectAnimator objectAnimator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,9 +172,14 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     private void showLoadingAnimation() {
         centerIv.setVisibility(View.VISIBLE);
         centerIv.setImageResource(R.drawable.loading);
-        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(centerIv, "rotation", 0f, 360f);
-        objectAnimator.setDuration(2000);
-        objectAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        if (objectAnimator == null) {
+            objectAnimator = ObjectAnimator.ofFloat(centerIv, "rotation", 0f, 360f);
+            objectAnimator.setDuration(2000);
+            objectAnimator.setRepeatCount(ValueAnimator.INFINITE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                objectAnimator.setAutoCancel(true);
+            }
+        }
         objectAnimator.start();
     }
 
@@ -187,6 +195,9 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void releaseResource() {
+        if (objectAnimator != null) {
+            objectAnimator.cancel();
+        }
         if (centerIv.getAnimation() != null) {
             centerIv.getAnimation().cancel();
         }
@@ -248,6 +259,10 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     @Override
     protected void onDestroy() {
         releaseResource();
+        if (mPager != null) {
+            mPager.removeAllViews();
+            mPager = null;
+        }
         super.onDestroy();
     }
 }
