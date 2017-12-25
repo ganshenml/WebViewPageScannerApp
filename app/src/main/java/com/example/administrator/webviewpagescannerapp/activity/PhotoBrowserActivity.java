@@ -265,6 +265,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     @Override
     protected void onDestroy() {
         releaseResource();
+        curPage = null;
         if (mPager != null) {
             mPager.removeAllViews();
             mPager = null;
