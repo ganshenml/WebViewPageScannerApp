@@ -37,6 +37,7 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     private int curPosition = -1;
     private int[] initialedPositions = null;
     private ObjectAnimator objectAnimator;
+    private View curPage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +109,10 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
                 container.removeView((View) object);
             }
 
+            @Override
+            public void setPrimaryItem(ViewGroup container, int position, Object object) {
+                curPage = (View) object;
+            }
         });
 
         curPosition = returnClickedPosition() == -1 ? 0 : returnClickedPosition();
@@ -218,11 +223,12 @@ public class PhotoBrowserActivity extends Activity implements View.OnClickListen
     }
 
     private void savePhotoToLocal() {
-        ViewGroup containerTemp = (ViewGroup) mPager.findViewWithTag(mPager.getCurrentItem());
-        if (containerTemp == null) {
-            return;
-        }
-        PhotoView photoViewTemp = (PhotoView) containerTemp.getChildAt(0);
+//        ViewGroup containerTemp = (ViewGroup) mPager.findViewWithTag(mPager.getCurrentItem());
+//        if (containerTemp == null) {
+//            return;
+//        }
+//        PhotoView photoViewTemp = (PhotoView) containerTemp.getChildAt(0);
+        PhotoView photoViewTemp = (PhotoView) curPage;
         if (photoViewTemp != null) {
             GlideBitmapDrawable glideBitmapDrawable = (GlideBitmapDrawable) photoViewTemp.getDrawable();
             if (glideBitmapDrawable == null) {
